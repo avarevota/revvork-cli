@@ -1,5 +1,6 @@
 import prompts from 'prompts';
 import { ApiClient } from '../api/client.js';
+import { ApiError } from '../api/errors.js';
 import { LoginResponseSchema, UserSchema } from '../api/schemas.js';
 import { saveProfile, getActiveProfile } from '../config/profile.js';
 import { success } from '../output/table.js';
@@ -28,7 +29,7 @@ export async function runLogin(opts: LoginOpts): Promise<void> {
 
   const email = opts.email ?? (await prompts({ type: 'text', name: 'v', message: 'Email' })).v as string;
   const password = opts.password ?? (await prompts({ type: 'password', name: 'v', message: 'Password' })).v as string;
-  if (!email || !password) throw new Error('Email and password are required');
+  if (!email || !password) throw new ApiError(401, 'Email and password are required');
 
   const client = new ApiClient({ baseUrl });
   const raw = await client.post('/api/auth/login', { email, password });

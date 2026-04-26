@@ -64,3 +64,36 @@ describe('logout', () => {
     expect(loadConfig().profiles['default']?.token).toBeUndefined();
   });
 });
+
+describe('login with email/password', () => {
+  it('posts credentials and stores token', async () => {
+    agent.get('http://api.test').intercept({ path: '/api/auth/login', method: 'POST' })
+      .reply(200, { token: 'new-tok', user: { id: 2, email: 'b@c', name: 'B', role: 'admin' } });
+
+    await runLogin({ baseUrl: 'http://api.test', profile: 'default', token: undefined, email: 'b@c', password: 'pass', json: false });
+
+    expect(loadConfig().profiles['default']?.token).toBe('new-tok');
+    expect(loadConfig().profiles['default']?.email).toBe('b@c');
+  });
+});
+
+describe('logout 401 swallow', () => {
+  it('clears token even when API returns 401', async () => {
+    agent.get('http://api.test').intercept({ path: '/api/auth/me', method: 'GET' })
+      .reply(200, { id: 1, email: 'a@b', name: 'A', role: 'admin' });
+    await runLogin({ baseUrl: 'http://api.test', profile: 'default', token: 'stale-tok', json: false });
+
+    agent.get('http://api.test').intercept({ path: '/api/auth/logout', method: 'POST' })
+      .reply(401, { message: 'Unauthenticated' });
+
+    await runLogout({ profile: 'default', json: false });
+    expect(loadConfig().profiles['default']?.token).toBeUndefined();
+  });
+});
+
+describe('whoami not logged in', () => {
+  it('throws ApiError 401 when no token stored', async () => {
+    const { ApiError } = await import('../../src/api/errors.js');
+    await expect(runWhoami({ profile: 'default', json: false })).rejects.toBeInstanceOf(ApiError);
+  });
+});
