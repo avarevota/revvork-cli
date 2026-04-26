@@ -1,0 +1,32 @@
+{
+  "name": "revvork-cli",
+  "version": "0.1.0",
+  "description": "CLI for the Revvork project-management app",
+  "type": "module",
+  "bin": { "revvork": "./dist/index.cjs" },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cli-table3": "^0.6.5",
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2",
+    "undici": "^6.21.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/prompts": "^2.4.9",
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": { "node": ">=20" }
+}
