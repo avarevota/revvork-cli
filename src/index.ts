@@ -7,6 +7,7 @@ import { runLogin } from './commands/login.js';
 import { runLogout } from './commands/logout.js';
 import { runWhoami } from './commands/whoami.js';
 import { runTaskList, runTaskShow, runTaskUpdate } from './commands/task.js';
+import { runUserList } from './commands/user.js';
 
 const program = new Command();
 program
@@ -65,6 +66,12 @@ task.command('done <id>').action(async (id: string, _o, cmd) => {
 task.command('status <id> <newStatus>').action(async (id: string, newStatus: string, _o, cmd) => {
   const g = cmd.optsWithGlobals();
   await runTaskUpdate({ profile: g.profile as string, json: g.json as boolean, id: Number(id), status: newStatus });
+});
+
+const user = program.command('user').description('Manage users');
+user.command('list').action(async (_o, cmd) => {
+  const g = cmd.optsWithGlobals();
+  await runUserList({ profile: g.profile as string, json: g.json as boolean });
 });
 
 program.parseAsync(process.argv).catch((err: unknown) => {
