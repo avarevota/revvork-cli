@@ -6,6 +6,7 @@ import { printJsonError } from './output/json.js';
 import { runLogin } from './commands/login.js';
 import { runLogout } from './commands/logout.js';
 import { runWhoami } from './commands/whoami.js';
+import { runTaskList, runTaskShow, runTaskUpdate } from './commands/task.js';
 
 const program = new Command();
 program
@@ -37,6 +38,33 @@ program.command('logout').action(async (_o, cmd) => {
 program.command('whoami').action(async (_o, cmd) => {
   const g = cmd.optsWithGlobals();
   await runWhoami({ profile: g.profile, json: g.json });
+});
+
+const task = program.command('task').description('Manage tasks');
+
+task.command('list')
+  .option('--assignee <v>', 'me | <email> | <id> | all', 'me')
+  .option('--project <code>', 'project code')
+  .option('--status <csv>', 'comma-separated statuses (default: active only)')
+  .option('--limit <n>', 'max rows (default 50)')
+  .action(async (opts, cmd) => {
+    const g = cmd.optsWithGlobals();
+    await runTaskList({ profile: g.profile as string, json: g.json as boolean, assignee: opts.assignee as string | undefined, project: opts.project as string | undefined, status: opts.status as string | undefined, limit: opts.limit as string | undefined });
+  });
+
+task.command('show <id>').action(async (id: string, _o, cmd) => {
+  const g = cmd.optsWithGlobals();
+  await runTaskShow({ profile: g.profile as string, json: g.json as boolean, id: Number(id) });
+});
+
+task.command('done <id>').action(async (id: string, _o, cmd) => {
+  const g = cmd.optsWithGlobals();
+  await runTaskUpdate({ profile: g.profile as string, json: g.json as boolean, id: Number(id), status: 'Done' });
+});
+
+task.command('status <id> <newStatus>').action(async (id: string, newStatus: string, _o, cmd) => {
+  const g = cmd.optsWithGlobals();
+  await runTaskUpdate({ profile: g.profile as string, json: g.json as boolean, id: Number(id), status: newStatus });
 });
 
 program.parseAsync(process.argv).catch((err: unknown) => {
