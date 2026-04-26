@@ -22,12 +22,11 @@ program
   .command('login')
   .option('--token <token>', 'use a personal access token (skips email/password)')
   .option('--email <email>', 'email (otherwise prompted)')
-  .option('--password <password>', 'password (otherwise prompted)')
   .action(async (opts, cmd) => {
     const g = cmd.optsWithGlobals();
     await runLogin({
       baseUrl: g.baseUrl, profile: g.profile, json: g.json,
-      token: opts.token, email: opts.email, password: opts.password,
+      token: opts.token, email: opts.email,
     });
   });
 

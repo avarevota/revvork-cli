@@ -11,7 +11,6 @@ export type LoginOpts = {
   profile: string;
   token?: string;
   email?: string;
-  password?: string;
   json: boolean;
 };
 
@@ -28,8 +27,11 @@ export async function runLogin(opts: LoginOpts): Promise<void> {
   }
 
   const email = opts.email ?? (await prompts({ type: 'text', name: 'v', message: 'Email' })).v as string;
-  const password = opts.password ?? (await prompts({ type: 'password', name: 'v', message: 'Password' })).v as string;
-  if (!email || !password) throw new ApiError(401, 'Email and password are required');
+  const password = (await prompts({ type: 'password', name: 'v', message: 'Password' })).v as string;
+  if (!email || !password) {
+    process.stderr.write('Login cancelled.\n');
+    process.exit(0);
+  }
 
   const client = new ApiClient({ baseUrl });
   const raw = await client.post('/api/auth/login', { email, password });

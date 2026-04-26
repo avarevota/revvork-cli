@@ -8,6 +8,10 @@ import { runLogout } from '../../src/commands/logout.js';
 import { runWhoami } from '../../src/commands/whoami.js';
 import { loadConfig } from '../../src/config/profile.js';
 
+vi.mock('prompts', () => ({
+  default: vi.fn(),
+}));
+
 let agent: MockAgent;
 let dir: string;
 beforeEach(() => {
@@ -70,7 +74,10 @@ describe('login with email/password', () => {
     agent.get('http://api.test').intercept({ path: '/api/auth/login', method: 'POST' })
       .reply(200, { token: 'new-tok', user: { id: 2, email: 'b@c', name: 'B', role: 'admin' } });
 
-    await runLogin({ baseUrl: 'http://api.test', profile: 'default', token: undefined, email: 'b@c', password: 'pass', json: false });
+    const { default: promptsMock } = await import('prompts');
+    vi.mocked(promptsMock).mockResolvedValueOnce({ v: 'pass' });
+
+    await runLogin({ baseUrl: 'http://api.test', profile: 'default', token: undefined, email: 'b@c', json: false });
 
     expect(loadConfig().profiles['default']?.token).toBe('new-tok');
     expect(loadConfig().profiles['default']?.email).toBe('b@c');

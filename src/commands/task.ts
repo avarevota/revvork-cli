@@ -61,6 +61,10 @@ export async function runTaskUpdate(opts: TaskUpdateOpts): Promise<void> {
   const client = clientFor(opts.profile);
   const body: Record<string, unknown> = {};
   if (opts.status) body.status = opts.status;
+  if (Object.keys(body).length === 0) {
+    process.stderr.write('Nothing to update.\n');
+    return;
+  }
   const raw = await client.patch(`/api/tasks/${opts.id}`, body);
   const { data: t } = ItemEnvelope(TaskSchema).parse(raw);
   if (opts.json) { printJson(t); return; }
