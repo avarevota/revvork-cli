@@ -1,13 +1,28 @@
 {
-  "name": "revvork-cli",
+  "name": "@revota/revvork-cli",
   "version": "0.1.0",
   "description": "CLI for the Revvork project-management app",
   "type": "module",
   "bin": { "revvork": "./dist/index.cjs" },
-  "files": ["dist"],
+  "files": ["dist", "README.md"],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avarevota/revvork-cli.git"
+  },
+  "homepage": "https://github.com/avarevota/revvork-cli#readme",
+  "bugs": {
+    "url": "https://github.com/avarevota/revvork-cli/issues"
+  },
+  "keywords": ["revvork", "cli", "project-management"],
+  "license": "MIT",
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build && npm test",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
