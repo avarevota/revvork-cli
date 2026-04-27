@@ -168,17 +168,134 @@ Example output:
 
 Hint: exit code 2 always prints `run: revvork login` to stderr.
 
-## Use with AI Agents
+## Using with AI Agents
 
-The CLI is designed to be driven by AI agents (Claude, GPT, etc.) as a subprocess. Use `--json` for machine-readable output and check exit codes for error handling.
+`revvork-cli` is designed to be driven by AI agents (Claude Code, Claude Desktop, custom LLM agents, etc.) as a subprocess tool. The `--json` flag makes every command output structured, parseable JSON — no screen-scraping needed.
 
-Example agent tool call:
+### How it works
 
-```bash
-revvork --json task list --assignee all --status "In Progress"
+The agent runs CLI commands as shell tools, reads the JSON output, reasons about it, and calls the next command. Errors go to stderr with a numeric exit code the agent can branch on.
+
+```
+Agent  →  revvork --json task list --assignee all
+       ←  [{ "id": 42, "title": "...", "status": "In Progress", ... }]
+
+Agent  →  revvork --json task status 42 "In Review"
+       ←  { "id": 42, "status": "In Review", ... }
 ```
 
-The agent receives structured JSON it can reason about, then calls `revvork task status <id> <status>` to take action.
+### Setup for an agent
+
+Before the agent can act, authenticate once and store the token in a named profile:
+
+```bash
+revvork --profile agent login \
+  --base-url https://your-revvork-app.com \
+  --token <personal-access-token>
+```
+
+The agent then always passes `--profile agent --json` to use that session.
+
+### Claude Code
+
+Add `revvork` as a shell tool in your `CLAUDE.md` or system prompt. Example:
+
+```markdown
+## Tools available
+
+- `revvork --profile agent --json task list [--assignee <email|all>] [--project <code>] [--status <csv>]`
+  Lists active tasks. Returns a JSON array.
+
+- `revvork --profile agent --json task show <id>`
+  Returns full detail for one task.
+
+- `revvork --profile agent --json task status <id> <status>`
+  Updates task status. Valid values: Backlog, To Do, In Progress, In Review, Done, Deployed.
+
+- `revvork --profile agent --json task done <id>`
+  Shortcut: marks task as Done.
+
+- `revvork --profile agent --json user list`
+  Returns all users. Use to resolve names/emails for --assignee.
+```
+
+Claude Code can then run these directly in the terminal during a session. Example prompt:
+
+> "Show me all overdue In Progress tasks assigned to the team and move the ones with no activity to Backlog."
+
+Claude will call `task list --assignee all --status "In Progress"`, inspect `due_date` and `last_activity_at`, then call `task status <id> Backlog` for each stale task.
+
+### Custom LLM agent (tool use / function calling)
+
+Define the CLI commands as tools in your agent's tool schema. Example for the Anthropic API:
+
+```json
+{
+  "name": "revvork_task_list",
+  "description": "List active tasks in Revvork. Returns a JSON array of tasks.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "assignee": {
+        "type": "string",
+        "description": "Filter by assignee: 'me', 'all', or an email address"
+      },
+      "project": {
+        "type": "string",
+        "description": "Filter by project code, e.g. 'RVV'"
+      },
+      "status": {
+        "type": "string",
+        "description": "Comma-separated statuses, e.g. 'In Progress,In Review'"
+      }
+    }
+  }
+}
+```
+
+When the model calls `revvork_task_list`, your tool handler runs:
+
+```ts
+const args = ['--profile', 'agent', '--json', 'task', 'list'];
+if (input.assignee) args.push('--assignee', input.assignee);
+if (input.project)  args.push('--project', input.project);
+if (input.status)   args.push('--status', input.status);
+
+const { stdout, stderr, exitCode } = await execa('revvork', args);
+
+if (exitCode === 0) return JSON.parse(stdout);
+throw new Error(`revvork error (${exitCode}): ${stderr}`);
+```
+
+### Exit codes for agent error handling
+
+| Code | Meaning | Agent action |
+|-----:|---------|--------------|
+| 0 | Success | Parse stdout as JSON |
+| 2 | Auth error | Re-authenticate, then retry |
+| 3 | Validation / permission | Report to user, do not retry |
+| 4 | Not found | Report to user, do not retry |
+| 5 | Network / server error | Retry with backoff |
+
+### Example agent workflows
+
+**Daily standup digest**
+```
+task list --assignee all --status "In Progress,In Review"
+→ summarise who is working on what, flag tasks overdue
+```
+
+**Triage unstarted backlog**
+```
+task list --assignee all --status Backlog --limit 50
+→ for each task without an assignee: ask manager to assign or defer
+```
+
+**Auto-close deployed tasks**
+```
+task list --assignee all --status "In Review" --project RVV
+→ for each task confirmed deployed: task status <id> Deployed
+```
 
 ## Development
 
