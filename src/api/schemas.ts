@@ -41,3 +41,11 @@ export const LoginResponseSchema = z.object({
   token: z.string(),
   user: UserSchema,
 });
+
+export const CommentSchema = z.object({
+  id: z.number(),
+  content: z.string(),
+  user: UserSchema.nullable().optional(),
+  created_at: z.string().nullable().optional(),
+});
+export type Comment = z.infer<typeof CommentSchema>;
