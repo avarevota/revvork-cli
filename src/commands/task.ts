@@ -60,6 +60,12 @@ export async function runTaskShow(opts: TaskShowOpts): Promise<void> {
 export type TaskUpdateOpts = { profile: string; json: boolean; id: number; status?: string };
 
 export async function runTaskUpdate(opts: TaskUpdateOpts): Promise<void> {
+  if (opts.status && !VALID_STATUSES.includes(opts.status)) {
+    throw new ValidationError(
+      `Invalid status: "${opts.status}"`,
+      `Valid values: ${VALID_STATUSES.join(', ')}`,
+    );
+  }
   const client = clientFor(opts.profile);
   const body: Record<string, unknown> = {};
   if (opts.status) body.status = opts.status;
@@ -73,6 +79,7 @@ export async function runTaskUpdate(opts: TaskUpdateOpts): Promise<void> {
   success(`Task #${t.id} updated → status: ${t.status ?? '—'}`);
 }
 
+const VALID_STATUSES = ['Backlog', 'To Do', 'In Progress', 'In Review', 'Done', 'Deployed'];
 const VALID_PRIORITIES = ['Urgent', 'High', 'Medium', 'Low'];
 
 export type TaskCreateOpts = {
