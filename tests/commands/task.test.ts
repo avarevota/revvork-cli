@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { saveProfile } from '../../src/config/profile.js';
-import { runTaskList, runTaskShow, runTaskUpdate } from '../../src/commands/task.js';
+import { runTaskList, runTaskShow, runTaskUpdate, runTaskCreate, runTaskEdit, runTaskComment } from '../../src/commands/task.js';
 
 let agent: MockAgent;
 let dir: string;
@@ -54,6 +54,55 @@ describe('task update', () => {
     const spy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     await runTaskUpdate({ profile: 'default', json: true, id: 9, status: 'Done' });
     expect(spy.mock.calls.flat().join('')).toContain('"status": "Done"');
+    spy.mockRestore();
+  });
+});
+
+describe('task create', () => {
+  it('POSTs to /api/tasks and prints JSON', async () => {
+    agent.get('http://api.test').intercept({ path: '/api/projects', method: 'GET' })
+      .reply(200, { data: [{ id: 1, code: 'RVV', title: 'Revvork' }] });
+    agent.get('http://api.test').intercept({ path: '/api/tasks', method: 'POST' })
+      .reply(201, { data: { id: 10, title: 'New task', status: 'Backlog', priority: 'Medium' } });
+
+    const spy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    await runTaskCreate({ profile: 'default', json: true, title: 'New task', project: 'RVV', assignee: undefined, priority: undefined, status: undefined, start: undefined, due: undefined });
+    expect(spy.mock.calls.flat().join('')).toContain('"id": 10');
+    spy.mockRestore();
+  });
+
+  it('throws ValidationError for invalid priority', async () => {
+    const { ValidationError } = await import('../../src/errors/ValidationError.js');
+    await expect(runTaskCreate({ profile: 'default', json: false, title: 'T', project: undefined, assignee: undefined, priority: 'Extreme', status: undefined, start: undefined, due: undefined }))
+      .rejects.toBeInstanceOf(ValidationError);
+  });
+});
+
+describe('task edit (update)', () => {
+  it('PATCHes task with title', async () => {
+    agent.get('http://api.test').intercept({ path: '/api/tasks/5', method: 'PATCH' })
+      .reply(200, { data: { id: 5, title: 'Updated', status: 'To Do' } });
+
+    const spy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    await runTaskEdit({ profile: 'default', json: true, id: 5, title: 'Updated', priority: undefined, assignee: undefined, project: undefined, start: undefined, due: undefined });
+    expect(spy.mock.calls.flat().join('')).toContain('"id": 5');
+    spy.mockRestore();
+  });
+
+  it('throws when no flags provided', async () => {
+    await expect(runTaskEdit({ profile: 'default', json: false, id: 5, title: undefined, priority: undefined, assignee: undefined, project: undefined, start: undefined, due: undefined }))
+      .rejects.toThrow('Nothing to update');
+  });
+});
+
+describe('task comment', () => {
+  it('POSTs comment and prints success', async () => {
+    agent.get('http://api.test').intercept({ path: '/api/tasks/7/comments', method: 'POST' })
+      .reply(201, { data: { id: 1, content: 'Nice work', user: { id: 1, email: 'a@b', name: 'A' }, created_at: '2026-04-28T00:00:00Z' } });
+
+    const spy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    await runTaskComment({ profile: 'default', json: false, id: 7, content: 'Nice work' });
+    expect(spy.mock.calls.flat().join('')).toContain('Comment added');
     spy.mockRestore();
   });
 });

@@ -100,6 +100,70 @@ List all users — useful for looking up emails to use with `--assignee`.
 revvork user list
 ```
 
+### `revvork task create`
+
+Create a new task. `--title` is required.
+
+```bash
+revvork task create --title "Fix auth redirect" \
+  --project RVV \
+  --assignee budi@company.com \
+  --priority High \
+  --status "To Do" \
+  --due 2026-05-15
+```
+
+**Priority values:** `Urgent` · `High` · `Medium` · `Low` (default: `Medium`)
+
+### `revvork task update <id>`
+
+Update task fields. At least one flag required. Use `task status` or `task done` to change status.
+
+```bash
+revvork task update 123 --title "Updated title"
+revvork task update 123 --priority Urgent --due 2026-05-01
+revvork task update 123 --assignee budi@company.com
+```
+
+### `revvork task comment <id> <content>`
+
+Add a comment to a task.
+
+```bash
+revvork task comment 123 "Deployed to staging, please verify."
+```
+
+### `revvork report todo --project <code>`
+
+List all To Do tasks for a project.
+
+```bash
+revvork report todo --project RVV
+revvork report todo --project RVV --assignee budi@company.com
+```
+
+Output columns: `ID · Title · Priority · Assignee · Due`
+
+### `revvork report overdue`
+
+List active tasks past their due date, with days overdue.
+
+```bash
+revvork report overdue
+revvork report overdue --project RVV
+```
+
+Output columns: `ID · Title · Status · Priority · Assignee · Project · Due · Days overdue`
+
+### `revvork report assignee`
+
+Show task count per person per status — useful for workload overview.
+
+```bash
+revvork report assignee
+revvork report assignee --project RVV
+```
+
 ## Global Options
 
 These flags work with any command:
